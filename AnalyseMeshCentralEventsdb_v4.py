@@ -56,9 +56,8 @@ def main(argv) :
     usage+=f" {sys.argv[0]} -mdec --since=2025-08-01 meshcentral-events.db\n"
     usage+=f" to output log activity on and after the 1st of August 2025."
     try :
-        import MeshCentral_data # import a list of known assets and user ids and their aliases
-        nodeids=MeshCentral_data.nodeids
-        userids=MeshCentral_data.userids
+        from MeshCentral_data import nodeids # import a list of known assets and user ids and their aliases
+        from MeshCentral_data import userids
     except :
                 #    <nodeid> : <alias>
         nodeids = { "node//aabbccddeeffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz001122334455" : "My Pi"}
@@ -271,5 +270,6 @@ def main(argv) :
     
 if __name__ == "__main__" :
     main(sys.argv[1:])
+
 
 
