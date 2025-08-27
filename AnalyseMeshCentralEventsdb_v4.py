@@ -39,7 +39,7 @@ def main(argv) :
     default_file = Path.home() / "meshcentral-data" / "meshcentral-events.db"
     
     default_byte_type='none'
-    default_since=datetime(2000,1,1,tzinfo=timezone.utc)
+    default_since=datetime(2000,1,1,tzinfo=timezone.utc) # All times/dates are using UTC timezone. If a time/date does not have a timezone it is assumed to be UTC.
     output="console"
     debug = 0
     usage =f"usage: {sys.argv[0]} [sbuamod|h] <filenames>...\n"
@@ -271,4 +271,5 @@ def main(argv) :
     
 if __name__ == "__main__" :
     main(sys.argv[1:])
+
 
