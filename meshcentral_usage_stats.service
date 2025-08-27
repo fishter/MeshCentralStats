@@ -1,0 +1,11 @@
+[Unit]
+Description=Service to run usage stats for mesh central
+
+[Service]
+Type=oneshot
+ExecStart=/home/ec2-user/run_usage_stats.sh
+User=ec2-user
+Group=ec2-user
+
+[Install]
+WantedBy=multi-user.target

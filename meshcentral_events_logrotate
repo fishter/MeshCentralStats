@@ -1,0 +1,14 @@
+/home/ec2-user/meshcentral-data/meshcentral-events.db
+{
+    rotate 12
+    weekly
+    maxsize 20M
+    dateext
+    delaycompress
+    prerotate
+        /home/ec2-user/stop
+    endscript
+    postrotate
+        /home/ec2-user/start
+    endscript
+}

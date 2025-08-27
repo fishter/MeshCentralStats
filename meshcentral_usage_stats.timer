@@ -1,0 +1,11 @@
+[Unit]
+Description=Run daily to update usage stats
+
+[Timer]
+OnCalendar=daily
+RandomizedDelay=600
+Persistent=True
+
+[Install]
+WantedBy=timers.target
+
