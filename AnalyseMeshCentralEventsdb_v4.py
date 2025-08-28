@@ -84,8 +84,8 @@ def main(argv) :
     for element in [('-d',''), ('--debug','')] :
         try: 
             i=0
-            while (opts.index(element) > i): 
-                opts.pop(opts.index(element))
+            while (opts[(i+1):].index(element) > 0): # no debug flags beyond position i
+                opts.pop(opts[(i+1):].index(element)+i+1)
                 opts.insert(0,element)
                 i+=1
         except : pass # no debug found.
