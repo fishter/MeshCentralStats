@@ -40,11 +40,13 @@ def main(argv) :
     
     default_byte_type='none'
     default_since=datetime(2000,1,1,tzinfo=timezone.utc) # All times/dates are using UTC timezone. If a time/date does not have a timezone it is assumed to be UTC.
+    default_period=1440
     output="console"
     debug = 0
-    usage =f"usage: {sys.argv[0]} [sbuamod|h] <filenames>...\n"
+    usage =f"usage: {sys.argv[0]} [sbguamod|h] <filenames>...\n"
     usage+=f"  options:\n"
-    usage+=f"-s, --since=<yyyy-mm-dd>, -b, --before=<yyyy-mm-dd> to restrict time span\n"
+    usage+=f"-s, --since=, -b, --before= to restrict time span. Use ISO8601 format for UTC yyyy-mm-ddZhh:mm:ss'.\n"
+    usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60, 120, 144, 180, 240, 360, 720, 1440  1 minute to 1 day"
     usage+=f"-u, --user the user to include in the report (defaults to all)\n"
     usage+=f"-a, --asset the asset to include in the report (defaults to all)\n"
     usage+=f"-m, --measurement units to use 'dec', 'IEC', 'none', defaults to {default_byte_type}\n"
@@ -65,7 +67,7 @@ def main(argv) :
         userids = { "admin" : "Administrator" }
 
     try :
-        opts, args = getopt.getopt(argv,"f:s:b:u:o:m:dh",["filename=","since=","before=","user=","asset=","measurement=","output=","debug","help","help+"])
+        opts, args = getopt.getopt(argv,"f:s:b:g:u:o:m:dh",["filename=","since=","before=","user=","asset=","measurement=","output=","debug","help","help+"])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -76,6 +78,7 @@ def main(argv) :
     before = None
     user = None
     asset = None
+    period=None
     for opt, arg in opts :
         if opt in ("-f", "--filename") : # hidden option...
             files.append(arg)
@@ -104,17 +107,26 @@ def main(argv) :
             sys.exit(0)
 
         if opt in ("-s","--since") :
-            try : since=datetime.strptime(arg,"%Y-%m-%d").astimezone(timezone.utc)
+            try : since=datetime.strptime(arg,"%Y-%m-%dZ%%H:%M:%S").astimezone(timezone.utc)
             except : 
-                print(f"{arg} is not a valid date. Use yyyy-mm-dd format.")
+                print(f"{arg} is not a valid date.Use yyyy-mm-ddZHH:MM:SS format.")
                 sys.exit(2)
 
         if opt in ("-b","--before") :
-            try : before=datetime.strptime(arg,"%Y-%m-%d").astimezone(timezone.utc)
+            try : before=datetime.strptime(arg,"%Y-%m-%dZ%%H:%M:%S").astimezone(timezone.utc)
             except : 
-                print(f"{arg} is not a valid date. Use yyyy-mm-dd format.")
+                print(f"{arg} is not a valid date. Use yyyy-mm-ddZHH:MM:SS format.")
                 sys.exit(2)
                 
+        if opt in ("-g", "--granularity") :
+            valid_granularity=[1,   2,  3,  4,  5,  6, 10, 12, 15, 20, 30,  
+                               60,120,144,180,240,360,720,1440]
+            if int(arg) in valid_granularity : period=int(arg)
+            
+            else :
+                print(f"{arg} is not a valid period. Valid values are 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60, 120, 144, 180, 240, 360, 720, 1440  1 minute to 1 day Default is {default_period} minutes.")
+                sys.exit(2)
+            
         if opt in ("-u","--user") :
             if arg in list(userids.values()) : user=arg
             else :
@@ -148,6 +160,7 @@ def main(argv) :
     if byte_type == None : byte_type=default_byte_type
     if since == None  : since  = default_since
     if before == None : before = datetime.now(timezone.utc)
+    if period == None : period = default_period
     
     ## Set some display variables
     if   byte_type=="dec" :
@@ -162,6 +175,8 @@ def main(argv) :
         byte_mult = 0
         SI_name= [ "byte" ]
         SI_unit= [ "B" ]
+
+
 
     user_data={}
     asset_data={}
@@ -182,12 +197,12 @@ def main(argv) :
                     timestamp=datetime.fromtimestamp((line['time']['$$date'])/1000,timezone.utc) # millisecond Unix timestamp, assume UTC
                     #date = timestamp.strftime('%Y-%m-%d')
                     if (timestamp <= since) or (timestamp > before) :
-                        if debug > 2 :print(f"timestamp {timestamp.strftime('%Y-%m-%d')} is outside time range {since.strftime('%Y-%m-%d')} to {before.strftime('%Y-%m-%d')}")
+                        if debug > 2 :print(f"timestamp {timestamp.strftime('%Y-%m-%d %H:%M:%S')} is outside time range {since.strftime('%Y-%m-%d  %H:%M:%S')} to {before.strftime('%Y-%m-%d  %H:%M:%S')}")
                         pass
                     else:
                         
                         if (debug > 2) and (before != datetime.now(timezone.utc) or (since != default_since)) :
-                            print(f"timestamp {timestamp.strftime('%Y-%m-%d')} is inside time range {since.strftime('%Y-%m-%d')} to {before.strftime('%Y-%m-%d')}")
+                            print(f"timestamp {timestamp.strftime('%Y-%m-%d  %H:%M:%S')} is inside time range {since.strftime('%Y-%m-%d  %H:%M:%S')} to {before.strftime('%Y-%m-%d  %H:%M:%S')}")
                         username = line['username']
                         assetname = line['ids'][2]
                         if username in userids: username = userids[username] # pretty name
@@ -196,7 +211,9 @@ def main(argv) :
                         if ((username == user) or (user == None)) and ((assetname == asset) or (asset == None)) :
                             data_total = line['bytesin'] + line['bytesout']
                             grand_total += data_total
-                            date = timestamp.strftime('%Y-%m-%d')
+                            # round down the date and convert to a string to use as a key.
+                            date = round_date(timestamp,period).strftime('%Y-%m-%dZ%H:%M:%S') 
+                            if debug >0 : print(f"granularity = {period}")
                             if debug > 1 :
                                 print(f"{username}  : {timestamp.strftime('%Y-%m-%d %H:%M:%S')} : {data_total}")
                                 print(f"{username}  : {date} : {user_data[username][date]} : overall {user_data[username]['overall']}")
@@ -267,6 +284,34 @@ def main(argv) :
         print(f"Grand Total = {grand_total/pow(byte_mult,power):.2f} {SI_unit[power]}",file=f)
         if byte_type != "none" : print(f"(1 {SI_name[power]} = {byte_mult}^{power} = {pow(byte_mult,power)} bytes)",file=f)
     if f != None: f.close()
+    
+def round_date(date,period) :
+    # work out periods for granularity
+    # rounding down in all cases. period should be an integer multiple of minutes that fit into an hour, or hours that fit into a day
+    # in all cases, remove seconds and microseconds
+    date=date.replace(second=0,microsecond=0)
+    # for 1 minute remove the seconds
+    if period == 1 : 
+        return date
+    # for less than one hour
+    # round the minutes element to nearest multiple
+    if period < 60 :
+        minute=int(date.minute/period)*period
+        return date.replace(minute=minute)
+    # for more than one hour remove the minutes
+    if period >= 60:
+        date=date.replace(minute=0)
+    if period == 60 :
+        return date
+    # round the hours element to the nearest hour.
+    if period > 60 :
+        period //= 60 # integer division
+        hour=int(date.hour/period)*period
+        return date.replace(hour=hour)
+    
+    
+    
+    
     
 if __name__ == "__main__" :
     main(sys.argv[1:])
