@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Run usage analysis and save to text file.
-PATH=/home/ec2-user
-OUTPUT_PATH=${PATH}/meshcentral-files/domain/user-fosina_admin/NetUsage
-INPUT_PATH=${PATH}/meshcentral-data
+HOMEPATH=/home/ec2-user
+OUTPUT_PATH=${HOMEPATH}/meshcentral-files/domain/user-fosina_admin/NetUsage
+INPUT_PATH=${HOMEPATH}/meshcentral-data
 DATE_BIN=/usr/bin/date
 FIND_BIN=/usr/bin/find
 RM_BIN=/usr/bin/rm
-SCRIPT_NAME=${PATH}/AnalyseMeshCentralEventsdb_v4.py
+SCRIPT_NAME=${HOMEPATH}/AnalyseMeshCentralEventsdb_v4.py
 
 
 # create daily file, picking only recently updated db files to do so.
@@ -29,3 +29,4 @@ then
         ${RM_BIN} ${OUTPUT_PATH}/*Daily-$($DATE_BIN} +'%Y-%m' --date=yesterday)*
     fi
 fi
+
