@@ -79,7 +79,26 @@ def main(argv) :
     user = None
     asset = None
     period=None
+    
+    # put the debug parameters at the top of the list so they are processed first.
+    for element in [('-d',''), ('--debug','')] :
+        try: 
+            i=0
+            while (opts.index(element) > i): 
+                opts.pop(opts.index(element))
+                opts.insert(0,element)
+                i+=1
+        except : pass # no debug found.
+        
     for opt, arg in opts :
+        if opt in ("-d", "--debug") : # put this first to allow some debug output ahead of parameter checking.
+            debug += 1
+            if debug == 1 : # only on the first d option, no need to print it 3 times on ddd!
+                print(f"Arguments: {argv}")
+                print(f"Options  : {opts}")
+                print(f"Args     : {args}")
+
+
         if opt in ("-f", "--filename") : # hidden option...
             files.append(arg)
         
@@ -88,9 +107,6 @@ def main(argv) :
             else :
                 print(f"Unknown unit, default to {default_byte_type}")
                 byte_type=default_byte_type
-
-        if opt in ("-d", "--debug") :
-            debug += 1
 
         if opt in ("-h", "--help") :
             print(usage)
@@ -107,13 +123,13 @@ def main(argv) :
             sys.exit(0)
 
         if opt in ("-s","--since") :
-            try : since=datetime.strptime(arg,"%Y-%m-%dZ%%H:%M:%S").astimezone(timezone.utc)
+            try : since=datetime.strptime(arg,"%Y-%m-%dZ%H:%M:%S").astimezone(timezone.utc)
             except : 
                 print(f"{arg} is not a valid date.Use yyyy-mm-ddZHH:MM:SS format.")
                 sys.exit(2)
 
         if opt in ("-b","--before") :
-            try : before=datetime.strptime(arg,"%Y-%m-%dZ%%H:%M:%S").astimezone(timezone.utc)
+            try : before=datetime.strptime(arg,"%Y-%m-%dZ%H:%M:%S").astimezone(timezone.utc)
             except : 
                 print(f"{arg} is not a valid date. Use yyyy-mm-ddZHH:MM:SS format.")
                 sys.exit(2)
@@ -150,11 +166,9 @@ def main(argv) :
         for arg in args :
             if arg[0] == "-" : pass
             else : files.append(arg)
+    if debug > 0 :
+        print(f"units    : {byte_type}")
 
-    if debug > 0 : print(f"Arguments: {argv}")
-    if debug > 0 : print(f"Options  : {opts}")
-    if debug > 0 : print(f"Args     : {args}")
-    if debug > 0 : print(f"units    : {byte_type}")
 
     if files == [] : files = [default_file]
     if byte_type == None : byte_type=default_byte_type
@@ -213,7 +227,7 @@ def main(argv) :
                             grand_total += data_total
                             # round down the date and convert to a string to use as a key.
                             date = round_date(timestamp,period).strftime('%Y-%m-%dZ%H:%M:%S') 
-                            if debug >0 : print(f"granularity = {period}")
+                            if debug > 1 : print(f"granularity = {period}")
                             if debug > 1 :
                                 print(f"{username}  : {timestamp.strftime('%Y-%m-%d %H:%M:%S')} : {data_total}")
                                 print(f"{username}  : {date} : {user_data[username][date]} : overall {user_data[username]['overall']}")
