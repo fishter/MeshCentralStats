@@ -171,7 +171,7 @@ def main(argv) :
     for file in files :
         if debug >2 :
             f+=1 # increment file counter (1-index)
-            printf(f"File #{f} = {file}")
+            print(f"File #{f} = {file}")
         with open(file,"r") as fp :
             if debug > 2 : i=0 # line counter
             for fline in fp :
@@ -270,6 +270,7 @@ def main(argv) :
     
 if __name__ == "__main__" :
     main(sys.argv[1:])
+
 
 
 
