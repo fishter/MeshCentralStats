@@ -43,10 +43,11 @@ def main(argv) :
     default_before=datetime.now(timezone.utc)
     default_period=1440
     output="console"
+    time_formats=[ "%Y-%m-%dZ%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%H:%M:%S", "%H:%M","%Hh"]
     debug = 0
     usage =f"usage: {sys.argv[0]} [sbguamod|h] <filenames>...\n"
     usage+=f"  options:\n"
-    usage+=f"-s, --since=, -b, --before= to restrict time span. Use ISO8601 format for UTC yyyy-mm-ddZhh:mm:ss'.\n"
+    usage+=f"-s, --since=, -b, --before= to restrict time span. Use ISO8601 formats for UTC yyyy-mm-ddZhh:mm:ss, hh:mm:ss, hh:mm or hh'h'.\n"
     usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440  1 minute to 1 day"
     usage+=f"-u, --user the user to include in the report (defaults to all)\n"
     usage+=f"-a, --asset the asset to include in the report (defaults to all)\n"
@@ -56,8 +57,10 @@ def main(argv) :
     usage+=f"-h, --help. Display this help. Use --help+ to get a list of known assets and users\n"
     usage+=f"<filenames> to analyse, defaults to\n    '{default_file}'\n"
     usage+=f"For example:\n"
-    usage+=f" {sys.argv[0]} -mdec --since=2025-08-01 meshcentral-events.db\n"
-    usage+=f" to output log activity on and after the 1st of August 2025."
+    usage+=f"  {sys.argv[0]} -mdec --since=2025-08-01 meshcentral-events.db\n"
+    usage+=f" to output log activity on and after the 1st of August 2025.\n"
+    usage+=f"  {sys.argv[0]} -mdec --since=12h meshcentral-events.db\n"
+    usage+=f" to output log activity since the previous midday.\n"
     try :
         from MeshCentral_data import nodeids # import a list of known assets and user ids and their aliases
         from MeshCentral_data import userids
@@ -122,10 +125,11 @@ def main(argv) :
             print("to associate nodeids and usernames with friendly aliases")
             for id in nodeids : print (f"Asset: \"{nodeids[id]}\"")
             for id in userids : print (f"User: \"{userids[id]}\"")
+            print(f"Valid date/time input formats are\n {time_formats}")
             sys.exit(0)
 
         if opt in ("-s","--since","-b","--before") :
-            for template in [ "%Y-%m-%dZ%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%H:%M:%S", "%H:%M","%Hh"] : 
+            for template in time_formats : 
                 try :
                     temptime=datetime.strptime(arg,template)
                     temptime=temptime.replace(tzinfo=timezone.utc)
