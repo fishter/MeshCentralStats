@@ -3,8 +3,11 @@ Description=Service to run usage stats for mesh central
 
 [Service]
 Type=oneshot
+# Put the correct path to the shell script here
 ExecStart=/home/ec2-user/run_usage_stats.sh
+# put the correct username here
 User=ec2-user
+# put the correct group here
 Group=ec2-user
 
 [Install]
