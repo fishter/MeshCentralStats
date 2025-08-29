@@ -47,7 +47,7 @@ def main(argv) :
     usage =f"usage: {sys.argv[0]} [sbguamod|h] <filenames>...\n"
     usage+=f"  options:\n"
     usage+=f"-s, --since=, -b, --before= to restrict time span. Use ISO8601 format for UTC yyyy-mm-ddZhh:mm:ss'.\n"
-    usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60, 120, 144, 180, 240, 360, 720, 1440  1 minute to 1 day"
+    usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440  1 minute to 1 day"
     usage+=f"-u, --user the user to include in the report (defaults to all)\n"
     usage+=f"-a, --asset the asset to include in the report (defaults to all)\n"
     usage+=f"-m, --measurement units to use 'dec', 'IEC', 'none', defaults to {default_byte_type}\n"
@@ -160,12 +160,12 @@ def main(argv) :
         #         sys.exit(2)
                 
         if opt in ("-g", "--granularity") :
-            valid_granularity=[1,   2,  3,  4,  5,  6, 10, 12, 15, 20, 30,  
-                               60,120,144,180,240,360,720,1440]
+            valid_granularity=[1,   2,  3,  4,  5,  6, 10,     15, 20, 30,  
+                               60,120,180,240,    360,    720, 1440]
             if int(arg) in valid_granularity : period=int(arg)
             
             else :
-                print(f"{arg} is not a valid period. Valid values are 1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60, 120, 144, 180, 240, 360, 720, 1440  1 minute to 1 day Default is {default_period} minutes.")
+                print(f"{arg} is not a valid period. Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440. I.e. 1 minute to 1 day in useful increments. Default is {default_period} minutes.")
                 sys.exit(2)
             
         if opt in ("-u","--user") :
@@ -354,6 +354,7 @@ def round_date(date,period) :
     
 if __name__ == "__main__" :
     main(sys.argv[1:])
+
 
 
 
