@@ -1,3 +1,4 @@
+# edit the path here to point to the meshcentra-events.db file
 /home/ec2-user/meshcentral-data/meshcentral-events.db
 {
     rotate 12
@@ -5,6 +6,7 @@
     maxsize 20M
     dateext
     delaycompress
+# edit the paths here to point to the stop and start shell scripts, or replace with systemctl stop/start meshcentral
     prerotate
         /home/ec2-user/stop
     endscript
