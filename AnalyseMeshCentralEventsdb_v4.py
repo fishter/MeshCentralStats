@@ -32,7 +32,7 @@ Last on the command line, optionally use the -f parameter to specify one or more
 """
 
 import json, sys, getopt, math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 def main(argv) :
@@ -40,11 +40,15 @@ def main(argv) :
     
     default_byte_type='none'
     default_since=datetime(2000,1,1,tzinfo=timezone.utc) # All times/dates are using UTC timezone. If a time/date does not have a timezone it is assumed to be UTC.
+    default_before=datetime.now(timezone.utc)
+    default_period=1440
     output="console"
+    time_formats=[ "%Y-%m-%dZ%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%H:%M:%S", "%H:%M","%Hh"]
     debug = 0
-    usage =f"usage: {sys.argv[0]} [sbuamod|h] <filenames>...\n"
+    usage =f"usage: {sys.argv[0]} [sbguamod|h] <filenames>...\n"
     usage+=f"  options:\n"
-    usage+=f"-s, --since=<yyyy-mm-dd>, -b, --before=<yyyy-mm-dd> to restrict time span\n"
+    usage+=f"-s, --since=, -b, --before= to restrict time span. Use ISO8601 formats for UTC yyyy-mm-ddZhh:mm:ss, hh:mm:ss, hh:mm or hh'h'.\n"
+    usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440  1 minute to 1 day"
     usage+=f"-u, --user the user to include in the report (defaults to all)\n"
     usage+=f"-a, --asset the asset to include in the report (defaults to all)\n"
     usage+=f"-m, --measurement units to use 'dec', 'IEC', 'none', defaults to {default_byte_type}\n"
@@ -53,8 +57,10 @@ def main(argv) :
     usage+=f"-h, --help. Display this help. Use --help+ to get a list of known assets and users\n"
     usage+=f"<filenames> to analyse, defaults to\n    '{default_file}'\n"
     usage+=f"For example:\n"
-    usage+=f" {sys.argv[0]} -mdec --since=2025-08-01 meshcentral-events.db\n"
-    usage+=f" to output log activity on and after the 1st of August 2025."
+    usage+=f"  {sys.argv[0]} -mdec --since=2025-08-01 meshcentral-events.db\n"
+    usage+=f" to output log activity on and after the 1st of August 2025.\n"
+    usage+=f"  {sys.argv[0]} -mdec --since=12h meshcentral-events.db\n"
+    usage+=f" to output log activity since the previous midday.\n"
     try :
         from MeshCentral_data import nodeids # import a list of known assets and user ids and their aliases
         from MeshCentral_data import userids
@@ -65,7 +71,7 @@ def main(argv) :
         userids = { "admin" : "Administrator" }
 
     try :
-        opts, args = getopt.getopt(argv,"f:s:b:u:o:m:dh",["filename=","since=","before=","user=","asset=","measurement=","output=","debug","help","help+"])
+        opts, args = getopt.getopt(argv,"f:s:b:g:u:o:m:dh",["filename=","since=","before=","user=","asset=","measurement=","output=","debug","help","help+"])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -74,9 +80,30 @@ def main(argv) :
     byte_type=None
     since = None
     before = None
+    temptime=None
     user = None
     asset = None
+    period=None
+    
+    # put the debug parameters at the top of the list so they are processed first.
+    for element in [('-d',''), ('--debug','')] :
+        try: 
+            i=0
+            while (opts[(i+1):].index(element) > 0): # no debug flags beyond position i
+                opts.pop(opts[(i+1):].index(element)+i+1)
+                opts.insert(0,element)
+                i+=1
+        except : pass # no debug found.
+        
     for opt, arg in opts :
+        if opt in ("-d", "--debug") : # put this first to allow some debug output ahead of parameter checking.
+            debug += 1
+            if debug == 1 : # only on the first d option, no need to print it 3 times on ddd!
+                print(f"Arguments: {argv}")
+                print(f"Options  : {opts}")
+                print(f"Args     : {args}")
+
+
         if opt in ("-f", "--filename") : # hidden option...
             files.append(arg)
         
@@ -85,9 +112,6 @@ def main(argv) :
             else :
                 print(f"Unknown unit, default to {default_byte_type}")
                 byte_type=default_byte_type
-
-        if opt in ("-d", "--debug") :
-            debug += 1
 
         if opt in ("-h", "--help") :
             print(usage)
@@ -101,20 +125,53 @@ def main(argv) :
             print("to associate nodeids and usernames with friendly aliases")
             for id in nodeids : print (f"Asset: \"{nodeids[id]}\"")
             for id in userids : print (f"User: \"{userids[id]}\"")
+            print(f"Valid date/time input formats are\n {time_formats}")
             sys.exit(0)
 
-        if opt in ("-s","--since") :
-            try : since=datetime.strptime(arg,"%Y-%m-%d").astimezone(timezone.utc)
-            except : 
-                print(f"{arg} is not a valid date. Use yyyy-mm-dd format.")
+        if opt in ("-s","--since","-b","--before") :
+            for template in time_formats : 
+                try :
+                    temptime=datetime.strptime(arg,template)
+                    temptime=temptime.replace(tzinfo=timezone.utc)
+                    if (temptime.year == 1900) and (temptime.month == 1) and (temptime.day == 1) : # we only have a time
+                        temptime=temptime.replace(year=datetime.now(timezone.utc).year,month=datetime.now(timezone.utc).month,day=datetime.now(timezone.utc).day)
+                        if temptime > datetime.now(timezone.utc):
+                            if (opt in ("-s","--since")) :
+                                temptime=temptime-timedelta(days=1) # if this is in the future, subtract a day
+                                if debug > 0 :
+                                    print(f"Assuming you meant a time yesterday.")
+                            else : # default to default if before is in the future
+                                temptime = default_before
+                                if debug >0 : print(f"Before {arg} is in the future; setting to now.")
+                    if debug >0 : print(f"setting {opt}={temptime} as {arg} matches template {template}")
+                    break
+                except ValueError : 
+                    if debug > 0 : print(f"{template} did not match {arg}, next")
+                except :
+                    print(f"Other error while setting since or before. {opt}={arg}")
+                    sys.exit(2)
+            if temptime == None : # we've exhausted our templates
+                print(f"{arg} is not a valid date/time. Use a valid format: {template} format.")
                 sys.exit(2)
+            if opt in ("-s","--since") : since=temptime
+            if opt in ("-b","--before") : before=temptime
 
-        if opt in ("-b","--before") :
-            try : before=datetime.strptime(arg,"%Y-%m-%d").astimezone(timezone.utc)
-            except : 
-                print(f"{arg} is not a valid date. Use yyyy-mm-dd format.")
-                sys.exit(2)
+
+        # if opt in ("-b","--before") :
+        #     try : before=datetime.strptime(arg,"%Y-%m-%dZ%H:%M:%S")
+        #     except : 
+        #         print(f"{arg} is not a valid date. Use yyyy-mm-ddZHH:MM:SS format.")
+        #         sys.exit(2)
                 
+        if opt in ("-g", "--granularity") :
+            valid_granularity=[1,   2,  3,  4,  5,  6, 10,     15, 20, 30,  
+                               60,120,180,240,    360,    720, 1440]
+            if int(arg) in valid_granularity : period=int(arg)
+            
+            else :
+                print(f"{arg} is not a valid period. Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440. I.e. 1 minute to 1 day in useful increments. Default is {default_period} minutes.")
+                sys.exit(2)
+            
         if opt in ("-u","--user") :
             if arg in list(userids.values()) : user=arg
             else :
@@ -138,16 +195,15 @@ def main(argv) :
         for arg in args :
             if arg[0] == "-" : pass
             else : files.append(arg)
+    if debug > 0 :
+        print(f"units    : {byte_type}")
 
-    if debug > 0 : print(f"Arguments: {argv}")
-    if debug > 0 : print(f"Options  : {opts}")
-    if debug > 0 : print(f"Args     : {args}")
-    if debug > 0 : print(f"units    : {byte_type}")
 
     if files == [] : files = [default_file]
     if byte_type == None : byte_type=default_byte_type
     if since == None  : since  = default_since
-    if before == None : before = datetime.now(timezone.utc)
+    if before == None : before = default_before
+    if period == None : period = default_period
     
     ## Set some display variables
     if   byte_type=="dec" :
@@ -162,6 +218,8 @@ def main(argv) :
         byte_mult = 0
         SI_name= [ "byte" ]
         SI_unit= [ "B" ]
+
+
 
     user_data={}
     asset_data={}
@@ -182,12 +240,12 @@ def main(argv) :
                     timestamp=datetime.fromtimestamp((line['time']['$$date'])/1000,timezone.utc) # millisecond Unix timestamp, assume UTC
                     #date = timestamp.strftime('%Y-%m-%d')
                     if (timestamp <= since) or (timestamp > before) :
-                        if debug > 2 :print(f"timestamp {timestamp.strftime('%Y-%m-%d')} is outside time range {since.strftime('%Y-%m-%d')} to {before.strftime('%Y-%m-%d')}")
+                        if debug > 2 :print(f"timestamp {timestamp.strftime('%Y-%m-%d %H:%M:%S')} is outside time range {since.strftime('%Y-%m-%d  %H:%M:%S')} to {before.strftime('%Y-%m-%d  %H:%M:%S')}")
                         pass
                     else:
                         
                         if (debug > 2) and (before != datetime.now(timezone.utc) or (since != default_since)) :
-                            print(f"timestamp {timestamp.strftime('%Y-%m-%d')} is inside time range {since.strftime('%Y-%m-%d')} to {before.strftime('%Y-%m-%d')}")
+                            print(f"timestamp {timestamp.strftime('%Y-%m-%d  %H:%M:%S')} is inside time range {since.strftime('%Y-%m-%d  %H:%M:%S')} to {before.strftime('%Y-%m-%d  %H:%M:%S')}")
                         username = line['username']
                         assetname = line['ids'][2]
                         if username in userids: username = userids[username] # pretty name
@@ -196,7 +254,9 @@ def main(argv) :
                         if ((username == user) or (user == None)) and ((assetname == asset) or (asset == None)) :
                             data_total = line['bytesin'] + line['bytesout']
                             grand_total += data_total
-                            date = timestamp.strftime('%Y-%m-%d')
+                            # round down the date and convert to a string to use as a key.
+                            date = round_date(timestamp,period).strftime('%Y-%m-%dZ%H:%M:%S') 
+                            if debug > 1 : print(f"granularity = {period}")
                             if debug > 1 :
                                 print(f"{username}  : {timestamp.strftime('%Y-%m-%d %H:%M:%S')} : {data_total}")
                                 print(f"{username}  : {date} : {user_data[username][date]} : overall {user_data[username]['overall']}")
@@ -267,6 +327,34 @@ def main(argv) :
         print(f"Grand Total = {grand_total/pow(byte_mult,power):.2f} {SI_unit[power]}",file=f)
         if byte_type != "none" : print(f"(1 {SI_name[power]} = {byte_mult}^{power} = {pow(byte_mult,power)} bytes)",file=f)
     if f != None: f.close()
+    
+def round_date(date,period) :
+    # work out periods for granularity
+    # rounding down in all cases. period should be an integer multiple of minutes that fit into an hour, or hours that fit into a day
+    # in all cases, remove seconds and microseconds
+    date=date.replace(second=0,microsecond=0)
+    # for 1 minute remove the seconds
+    if period == 1 : 
+        return date
+    # for less than one hour
+    # round the minutes element to nearest multiple
+    if period < 60 :
+        minute=int(date.minute/period)*period
+        return date.replace(minute=minute)
+    # for more than one hour remove the minutes
+    if period >= 60:
+        date=date.replace(minute=0)
+    if period == 60 :
+        return date
+    # round the hours element to the nearest hour.
+    if period > 60 :
+        period //= 60 # integer division
+        hour=int(date.hour/period)*period
+        return date.replace(hour=hour)
+    
+    
+    
+    
     
 if __name__ == "__main__" :
     main(sys.argv[1:])
