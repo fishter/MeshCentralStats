@@ -32,7 +32,7 @@ Last on the command line, optionally use the -f parameter to specify one or more
 """
 
 import json, sys, getopt, math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 def main(argv) :
@@ -40,6 +40,7 @@ def main(argv) :
     
     default_byte_type='none'
     default_since=datetime(2000,1,1,tzinfo=timezone.utc) # All times/dates are using UTC timezone. If a time/date does not have a timezone it is assumed to be UTC.
+    default_before=datetime.now(timezone.utc)
     default_period=1440
     output="console"
     debug = 0
@@ -76,6 +77,7 @@ def main(argv) :
     byte_type=None
     since = None
     before = None
+    temptime=None
     user = None
     asset = None
     period=None
@@ -122,17 +124,40 @@ def main(argv) :
             for id in userids : print (f"User: \"{userids[id]}\"")
             sys.exit(0)
 
-        if opt in ("-s","--since") :
-            try : since=datetime.strptime(arg,"%Y-%m-%dZ%H:%M:%S").astimezone(timezone.utc)
-            except : 
-                print(f"{arg} is not a valid date.Use yyyy-mm-ddZHH:MM:SS format.")
+        if opt in ("-s","--since","-b","--before") :
+            for template in [ "%Y-%m-%dZ%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%H:%M:%S", "%H:%M","%Hh"] : 
+                try :
+                    temptime=datetime.strptime(arg,template)
+                    temptime=temptime.replace(tzinfo=timezone.utc)
+                    if (temptime.year == 1900) and (temptime.month == 1) and (temptime.day == 1) : # we only have a time
+                        temptime=temptime.replace(year=datetime.now(timezone.utc).year,month=datetime.now(timezone.utc).month,day=datetime.now(timezone.utc).day)
+                        if temptime > datetime.now(timezone.utc):
+                            if (opt in ("-s","--since")) :
+                                temptime=temptime-timedelta(days=1) # if this is in the future, subtract a day
+                                if debug > 0 :
+                                    print(f"Assuming you meant a time yesterday.")
+                            else : # default to default if before is in the future
+                                temptime = default_before
+                                if debug >0 : print(f"Before {arg} is in the future; setting to now.")
+                    if debug >0 : print(f"setting {opt}={temptime} as {arg} matches template {template}")
+                    break
+                except ValueError : 
+                    if debug > 0 : print(f"{template} did not match {arg}, next")
+                except :
+                    print(f"Other error while setting since or before. {opt}={arg}")
+                    sys.exit(2)
+            if temptime == None : # we've exhausted our templates
+                print(f"{arg} is not a valid date/time. Use a valid format: {template} format.")
                 sys.exit(2)
+            if opt in ("-s","--since") : since=temptime
+            if opt in ("-b","--before") : before=temptime
 
-        if opt in ("-b","--before") :
-            try : before=datetime.strptime(arg,"%Y-%m-%dZ%H:%M:%S").astimezone(timezone.utc)
-            except : 
-                print(f"{arg} is not a valid date. Use yyyy-mm-ddZHH:MM:SS format.")
-                sys.exit(2)
+
+        # if opt in ("-b","--before") :
+        #     try : before=datetime.strptime(arg,"%Y-%m-%dZ%H:%M:%S")
+        #     except : 
+        #         print(f"{arg} is not a valid date. Use yyyy-mm-ddZHH:MM:SS format.")
+        #         sys.exit(2)
                 
         if opt in ("-g", "--granularity") :
             valid_granularity=[1,   2,  3,  4,  5,  6, 10, 12, 15, 20, 30,  
@@ -173,7 +198,7 @@ def main(argv) :
     if files == [] : files = [default_file]
     if byte_type == None : byte_type=default_byte_type
     if since == None  : since  = default_since
-    if before == None : before = datetime.now(timezone.utc)
+    if before == None : before = default_before
     if period == None : period = default_period
     
     ## Set some display variables
