@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Run usage analysis and save to text file.
 HOMEPATH=$HOME
-OUTPUT_PATH=${HOMEPATH}/meshcentral-files/domain/user-fosina_admin/NetUsage
+MC_USER=admin
+OUTPUT_PATH=${HOMEPATH}/meshcentral-files/domain/user-${MC_USER}/NetUsage
 INPUT_PATH=${HOMEPATH}/meshcentral-data
 SCRIPT_NAME=${HOMEPATH}/AnalyseMeshCentralEventsdb_v4.py
 
@@ -27,5 +28,6 @@ then
         rm ${OUTPUT_PATH}/*Daily-$(date +'%Y-%m' --date=yesterday)-*.txt
     fi
 fi
+
 
 
