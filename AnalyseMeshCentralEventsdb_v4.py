@@ -48,7 +48,7 @@ def main(argv) :
     usage =f"usage: {sys.argv[0]} [sbguamod|h] <filenames>...\n"
     usage+=f"  options:\n"
     usage+=f"-s, --since=, -b, --before= to restrict time span. Use ISO8601 formats for UTC yyyy-mm-ddZhh:mm:ss, hh:mm:ss, hh:mm or hh'h'.\n"
-    usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440  1 minute to 1 day"
+    usage+=f"-g, --granularity=<period> to specify a time period to aggregate.\n Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440  1 minute to 1 day.\n"
     usage+=f"-u, --user the user to include in the report (defaults to all)\n"
     usage+=f"-a, --asset the asset to include in the report (defaults to all)\n"
     usage+=f"-m, --measurement units to use 'dec', 'IEC', 'none', defaults to {default_byte_type}\n"
