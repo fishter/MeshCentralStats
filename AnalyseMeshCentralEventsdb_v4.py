@@ -71,7 +71,7 @@ def main(argv) :
         userids = { "admin" : "Administrator" }
 
     try :
-        opts, args = getopt.getopt(argv,"f:s:b:g:u:o:m:dh",["filename=","since=","before=","user=","asset=","measurement=","output=","debug","help","help+"])
+        opts, args = getopt.getopt(argv,"f:s:b:g:u:a:o:m:dh",["filename=","since=","before=","granularity=","user=","asset=","output=","measurement=","debug","help","help+"])
     except getopt.GetoptError:
         print(usage)
         sys.exit(2)
@@ -166,8 +166,8 @@ def main(argv) :
         if opt in ("-g", "--granularity") :
             valid_granularity=[1,   2,  3,  4,  5,  6, 10,     15, 20, 30,  
                                60,120,180,240,    360,    720, 1440]
-            if int(arg) in valid_granularity : period=int(arg)
-            
+            if int(arg) in valid_granularity : 
+                period=int(arg)
             else :
                 print(f"{arg} is not a valid period. Valid values are 1, 2, 3, 4, 5, 6, 10, 15, 20, 30, 60, 120, 180, 240, 360, 720, 1440. I.e. 1 minute to 1 day in useful increments. Default is {default_period} minutes.")
                 sys.exit(2)
