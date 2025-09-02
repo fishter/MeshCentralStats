@@ -224,7 +224,10 @@ def main(argv) :
     else :
         date_format="%Y-%m-%d %H:%M"
 
-
+    if byte_type == "none" :
+        data_output_format = ".0f"
+    else : 
+        data_output_format = ".2f"
 
     user_data={}
     asset_data={}
@@ -304,9 +307,9 @@ def main(argv) :
                 if date!='overall' :
                     data=user_data[user][date]
                     if byte_type != "none" : power=(int(math.log(data,byte_mult))) # get the magnitude
-                    print(f"   {date} {100*data/user_total:.2f}% ({data/pow(byte_mult,power):.2f} {SI_unit[power]})",file=f)
+                    print(f"   {date} {100*data/user_total:.2f}% ({data/pow(byte_mult,power):{data_output_format}} {SI_unit[power]})",file=f)
             if byte_type != "none": power=(int(math.log(user_total,byte_mult))) # get the magnitude
-            print(f" User Total = {percentage:.2f}% {user_total/pow(byte_mult,power):.2f} {SI_unit[power]}\n",file=f)
+            print(f" User Total = {percentage:.2f}% {user_total/pow(byte_mult,power):{data_output_format}} {SI_unit[power]}\n",file=f)
 
     print("Asset Summary:",file=f)
     for asset in sorted(asset_data, key=lambda s: s.lower()) :
@@ -320,16 +323,16 @@ def main(argv) :
                 if date!='overall' :
                     data=asset_data[asset][date]
                     if byte_type != "none" : power=(int(math.log(data,byte_mult))) # get the magnitude
-                    print(f"   {date} {100*data/asset_total:.2f}% ({data/pow(byte_mult,power):.2f} {SI_unit[power]})",file=f)
+                    print(f"   {date} {100*data/asset_total:.2f}% ({data/pow(byte_mult,power):{data_output_format}} {SI_unit[power]})",file=f)
             if byte_type != "none": power=(int(math.log(asset_total,byte_mult))) # get the magnitude
-            print(f" Asset Total = {percentage:.2f}% {asset_total/pow(byte_mult,power):.2f} {SI_unit[power]}\n",file=f)
+            print(f" Asset Total = {percentage:.2f}% {asset_total/pow(byte_mult,power):{data_output_format}} {SI_unit[power]}\n",file=f)
 
     if grand_total == 0 :
         if user != None : print(f"No data for {user}")
         if asset != None : print(f"No data for {asset}")
     else :
         if byte_type != "none" : power=(int(math.log(grand_total,byte_mult))) # get the magnitude
-        print(f"Grand Total = {grand_total/pow(byte_mult,power):.2f} {SI_unit[power]}",file=f)
+        print(f"Grand Total = {grand_total/pow(byte_mult,power):{data_output_format}} {SI_unit[power]}",file=f)
         if byte_type != "none" : print(f"(1 {SI_name[power]} = {byte_mult}^{power} = {pow(byte_mult,power)} bytes)",file=f)
     if f != None: f.close()
     
