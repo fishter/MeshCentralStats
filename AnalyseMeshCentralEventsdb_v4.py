@@ -218,6 +218,11 @@ def main(argv) :
         byte_mult = 0
         SI_name= [ "byte" ]
         SI_unit= [ "B" ]
+    
+    if period == 1440 :
+        date_format="%Y-%m-%d"
+    else :
+        date_format="%Y-%m-%d %H:%M"
 
 
 
@@ -255,7 +260,7 @@ def main(argv) :
                             data_total = line['bytesin'] + line['bytesout']
                             grand_total += data_total
                             # round down the date and convert to a string to use as a key.
-                            date = round_date(timestamp,period).strftime('%Y-%m-%dZ%H:%M:%S') 
+                            date = round_date(timestamp,period).strftime(date_format)
                             if debug > 1 : print(f"granularity = {period}")
                             if debug > 1 :
                                 print(f"{username}  : {timestamp.strftime('%Y-%m-%d %H:%M:%S')} : {data_total}")
