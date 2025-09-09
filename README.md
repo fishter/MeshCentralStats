@@ -12,15 +12,17 @@ The principal motivation here was to provide a means of assigning cost to users/
 
 ## Installation
 
-Drop the AnalyseMeshCentralStats_v4.py file into your home folder. With no options it will assume that the `meshcentral-events.db` file is in `./meshcentral-data/meshcentral-events.db`. It will then trawl through this file and produce some output day-by-day, for each user and asset it finds in the log.
+Firstly, this version of the tool only works with a MeshCentral installation that uses NeDB. This is the default database that is installed with MeshCentral.  If you have decided to use a different database then this tool will not work for you.
 
-If you also rename the `meshcentral_data.py.template` file to remove `template` you can add some more friendly aliases for your devices or users. Follow the pattern in the file. You can find the nodeid on the web interface to mesh central. Open the Console and type info. Then, copy the node id to the file adding `node//` at the start.
+Download all the files to a directory in your home folder, e.g. MeshCentralStats. With no options the `AnalyseMeshCentral_v4.py` script will assume that the `meshcentral-events.db` file is in `./meshcentral-data/meshcentral-events.db`. It will then trawl through this file and produce some output day-by-day, for each user and asset it finds in the log.
 
-If you want to be more automated you can put the logrotate config file into `/etc/logrotate.d/` to have logrotate take care of the events.db rotation. You can also set an option in your meshcentral `config.json` to limit the history in the events.db. Consider the two features together if you want to keep a permanent record.
+If you rename the `meshcentral_data.py.template` file to remove `template` you can add some more friendly aliases for your devices or users. Follow the pattern in the file. You can find the nodeid on the web interface to mesh central. Open the Console and type info. Then, copy the node id to the file adding `node//` at the start.
+
+If you want to be more automated you can put the logrotate config file into `/etc/logrotate.d/` to have logrotate take care of the events.db rotation (this assumes you have a working logrotate installation). You can also set an option in your meshcentral `config.json` to limit the history in the events.db to a value longer than the logrotate setting. Consider the two features together if you want to keep a permanent record.
 
 The shell script, `run_usage_stats.sh`, is useful to produce output files with specific contents. This can be controlled by the `.service` and `.timer` files.  Put these systemd configuration files in `/usr/lib/systemd/system` and run `systemctl daemon-reload`, then `systemctl enable meshcentral_usage_stats.service`, `systemctl enable meshcentral_usage_stats.timer`, and `systemctl start meshcentral_usage_stats.timer`.
 
-You will likely have to edit the paths in the shell script and the service file to point to the right files. You may also have to run dos2unix on the py and sh files, and set them to be executable (chmod +x <file>).
+You may have to edit the paths in the shell script and the service file to point to the right files. You may also have to run dos2unix on the py and sh files, and set them to be executable (chmod +x <file>).
 
 If you need help, or have suggestions, post an issue here: https://github.com/fishter/MeshCentralStats/issue
 
