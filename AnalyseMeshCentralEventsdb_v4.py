@@ -204,7 +204,14 @@ def main(argv) :
     if since == None  : since  = default_since
     if before == None : before = default_before
     if period == None : period = default_period
-    
+
+    # The message ids of the events we want to log
+    # 9=
+    # 10 = 
+    # 11 = desktop relay
+    # 12 = 
+    logged_msgids=[9,10,11,12]
+       
     ## Set some display variables
     if   byte_type=="dec" :
         byte_mult=1000
@@ -243,7 +250,7 @@ def main(argv) :
             for fline in fp :
                 line=json.loads(fline)
                 if debug > 2 : i+=1 # increment line counter (1-index)
-                if ('etype' in line) and (line['etype'] == 'relay' and (line['msgid'] in [9,10,12])) : # end of relay session
+                if ('etype' in line) and (line['etype'] == 'relay' and (line['msgid'] in logged_msgids)) : # end of relay session
                     if debug > 2 : print(f"{f}-{i} : {line}") # File and line reference
                     timestamp=datetime.fromtimestamp((line['time']['$$date'])/1000,timezone.utc) # millisecond Unix timestamp, assume UTC
                     #date = timestamp.strftime('%Y-%m-%d')
